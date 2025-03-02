@@ -3,11 +3,11 @@ from multinomial_example import multinomialExample
 from read_file import SEED, getProbabilityMatrix, getNeuralNetwork
 import torch.nn.functional as F
 
-neural_network = True
+neural_network = False
 #multinomialExample() # this will print the probability of each element in the tensor, the sampling of the multinomial distribution and a line to separate the outputs
 
 if not neural_network:
-    P, itos = getProbabilityMatrix(draw=False, printFirstRow=False)
+    P, itos = getProbabilityMatrix(isDraw=False, printFirstRow=False)
 else:
     W, itos = getNeuralNetwork(printLikelihood=False)
 

@@ -11,7 +11,7 @@ stoi = {c: i+1 for i, c in enumerate(chars)}
 stoi['.'] = 0 
 itos = {i: c for c, i in stoi.items()}
 
-def getProbabilityMatrix(draw, printFirstRow):
+def getProbabilityMatrix(isDraw, printFirstRow):
     N = torch.zeros(27, 27, dtype=torch.int32)
     for word in words:
         chs = ['.'] + list(word) + ['.']
@@ -20,7 +20,7 @@ def getProbabilityMatrix(draw, printFirstRow):
             ix2 = stoi[ch2]
             N[ix1, ix2] += 1
 
-    if draw:
+    if isDraw:
         draw(N, itos) 
 
 
