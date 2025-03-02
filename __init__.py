@@ -16,9 +16,6 @@ for _ in range(10):
     out = []
     ix = 0
     while True:
-        
-        # BEFORE
-        # normal modal
         if not neural_network:
             p = P[ix]
         else:
@@ -27,7 +24,7 @@ for _ in range(10):
             counts = logits.exp() # counts, equivalent to N
             p = counts / counts.sum(1, keepdim=True) # probabilities for next character
 
-        # finding index with 
+        # finding index with multinomial distribution
         ix = torch.multinomial(p, num_samples=1, replacement=True, generator=g).item()
         out.append(itos[ix])
         if ix == 0:
