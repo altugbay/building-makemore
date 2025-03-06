@@ -2,6 +2,13 @@ import torch
 import torch.nn.functional as F
 from draw import draw
 
+
+# GOAL: maximize the likelihood of the data
+# equivalent it means we want to maximize log likelihood
+# it means we want to minimize negative log likelihood
+# equivalent it means we want to minimize average log likelihood
+# a * b * c (where a and b and c are the probabilities) = log(a) + log(b) + log(c)
+
 SEED = 2147483647
 
 fileName = 'names.txt'
@@ -11,7 +18,7 @@ stoi = {c: i+1 for i, c in enumerate(chars)}
 stoi['.'] = 0 
 itos = {i: c for c, i in stoi.items()}
 
-def getProbabilityMatrix(isDraw, printFirstRow):
+def getBigramProbabilityMatrix(printLikelihood, isDraw, printFirstRow):
     N = torch.zeros(27, 27, dtype=torch.int32)
     for word in words:
         chs = ['.'] + list(word) + ['.']
@@ -37,9 +44,31 @@ def getProbabilityMatrix(isDraw, printFirstRow):
 
     P = (N+1).float() # +1 is for regularization
     P = P / P.sum(1, keepdim=True)
+
+    if printLikelihood: 
+         printNegativeLikelihoodFromProbabilityMatrix(P)
+
     return P, itos
 
-def getNeuralNetwork(printLikelihood):
+def printNegativeLikelihoodFromProbabilityMatrix(P):
+    loglikelihood = 0
+    n=0
+    for word in words:
+            chs = ['.'] + list(word) + ['.']
+            for ch1, ch2 in zip(chs, chs[1:]):
+                ix1 = stoi[ch1]
+                ix2 = stoi[ch2]
+                prob = P[ix1, ix2]
+                logprob = torch.log(prob)
+                loglikelihood += logprob
+                n += 1
+                #print(f'{ch1}{ch2}: {prob:.4f} (log likelihood: {logprob:.4f})')
+    
+    print('=================')        
+    print('average negative log likelihood:', -loglikelihood / n)
+    print('=================')   
+
+def getBigramNeuralNetwork(printLikelihood):
 
     xs, ys = [], []
     #for word in words[:1]:
@@ -82,11 +111,11 @@ def getNeuralNetwork(printLikelihood):
         # backward pass
     
     if printLikelihood:
-        printLikelihood(xs, ys, itos, probs)
+        printNegativeLikelihoodFromNN(xs, ys, itos, probs)
 
     return W, itos
 
-def printLikelihood(xs, ys, itos, probs):
+def printNegativeLikelihoodFromNN(xs, ys, itos, probs):
     nlls = torch.zeros(5)
     for i in range(5):
         x = xs[i].item()

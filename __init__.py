@@ -1,15 +1,15 @@
 import torch
 from multinomial_example import multinomialExample
-from read_file import SEED, getProbabilityMatrix, getNeuralNetwork
+from read_file import SEED, getBigramProbabilityMatrix, getBigramNeuralNetwork
 import torch.nn.functional as F
 
 neural_network = False
 #multinomialExample() # this will print the probability of each element in the tensor, the sampling of the multinomial distribution and a line to separate the outputs
 
 if not neural_network:
-    P, itos = getProbabilityMatrix(isDraw=False, printFirstRow=False)
+    P, itos = getBigramProbabilityMatrix(printLikelihood=True, isDraw=False, printFirstRow=False)
 else:
-    W, itos = getNeuralNetwork(printLikelihood=False)
+    W, itos = getBigramNeuralNetwork(printLikelihood=False)
 
 g = torch.Generator().manual_seed(SEED)
 for _ in range(10):
