@@ -1,6 +1,9 @@
 import torch
 import torch.nn.functional as F
-from draw import draw
+from constants import SEED
+from draw import drawProbabilityMatrix
+from reading_file import read_file
+from multinomial_example import multinomialExample
 
 
 # GOAL: maximize the likelihood of the data
@@ -8,15 +11,7 @@ from draw import draw
 # it means we want to minimize negative log likelihood
 # equivalent it means we want to minimize average log likelihood
 # a * b * c (where a and b and c are the probabilities) = log(a) + log(b) + log(c)
-
-SEED = 2147483647
-
-fileName = 'names.txt'
-words = open('names.txt', 'r').read().splitlines()
-chars = sorted(list(set(''.join(words))))
-stoi = {c: i+1 for i, c in enumerate(chars)}
-stoi['.'] = 0 
-itos = {i: c for c, i in stoi.items()}
+words, stoi, itos = read_file()
 
 def getBigramProbabilityMatrix(printLikelihood, isDraw, printFirstRow):
     N = torch.zeros(27, 27, dtype=torch.int32)
@@ -28,7 +23,7 @@ def getBigramProbabilityMatrix(printLikelihood, isDraw, printFirstRow):
             N[ix1, ix2] += 1
 
     if isDraw:
-        draw(N, itos) 
+        drawProbabilityMatrix(N, itos) 
 
 
     if printFirstRow:
@@ -136,3 +131,35 @@ def printNegativeLikelihoodFromNN(xs, ys, itos, probs):
     print('=================')
     print('average negative log likelihood:', nlls.mean().item())
     print('=================')
+
+def samplingFromModel(P, W): 
+    # generate 10 random names
+    g = torch.Generator().manual_seed(SEED)
+    for _ in range(10):
+        out = []
+        ix = 0
+        while True:
+            if not neural_network:
+                p = P[ix]
+            else:
+                xenc = F.one_hot(torch.tensor([ix]), num_classes=27).float()
+                logits = xenc @ W
+                counts = logits.exp() # counts, equivalent to N
+                p = counts / counts.sum(1, keepdim=True) # probabilities for next character
+
+            # finding index with multinomial distribution
+            ix = torch.multinomial(p, num_samples=1, replacement=True, generator=g).item()
+            out.append(itos[ix])
+            if ix == 0:
+                break
+        print(''.join(out))
+
+neural_network = True
+#multinomialExample() # this will print the probability of each element in the tensor, the sampling of the multinomial distribution and a line to separate the outputs
+P, W = None, None
+if not neural_network:
+    P, itos = getBigramProbabilityMatrix(printLikelihood=False, isDraw=False, printFirstRow=False)
+else:
+    W, itos = getBigramNeuralNetwork(printLikelihood=False)
+
+samplingFromModel(P, W)        

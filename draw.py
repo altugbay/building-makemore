@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 
 
-def draw(N, itos):
+def drawProbabilityMatrix(N, itos):
     plt.figure(figsize=(16, 16))
     plt.imshow(N, cmap='Blues')
     for i in range(27):
@@ -12,3 +12,11 @@ def draw(N, itos):
 
     plt.axis('off')
     plt.show()  
+
+def drawEmbedingMatrix(C, itos):
+    plt.figure(figsize=(8,8))
+    plt.scatter(C[:,0].data, C[:,1].data, s=200)
+    for i in range(C.shape[0]):
+        plt.text(C[i,0].item(), C[i,1].item(), itos[i], ha="center", va="center", color='white')
+    plt.grid('minor')
+    plt.show()    

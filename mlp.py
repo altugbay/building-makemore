@@ -3,16 +3,10 @@ import torch.nn.functional as F
 import matplotlib.pyplot as plt
 import random
 
-from bigram import SEED # for making figures
+from constants import SEED
+from reading_file import read_file # for making figures
 
-fileName = 'names.txt'
-words = open('names.txt', 'r').read().splitlines()
-chars = sorted(list(set(''.join(words))))
-stoi = {c: i+1 for i, c in enumerate(chars)}
-stoi['.'] = 0 
-itos = {i: c for c, i in stoi.items()}
-
-
+words, stoi, itos = read_file()
 trackStats = False
 drawEmbedingMatrix = False
 
@@ -93,34 +87,21 @@ for i in range(200000):
 
 if trackStats:
     plt.plot(stepi, lossi)
-    plt.show()    
+    plt.show()   
+
+def printLoss(label, X, Y):
+    emb = C[X] # (32, 3, 2)
+    h = torch.tanh(emb.view(-1, 30) @ W1 + b1) # (32, 100)
+    logits = h @ W2 + b2 # (32, 27)
+    loss = F.cross_entropy(logits, Y)
+    print(label, loss.item())
+
+printLoss("Training loss", Xtr, Ytr)
+printLoss("Validation loss", Xdev, Ydev)
+printLoss("Test loss", Xte, Yte)
 
 
-# training loss
-emb = C[Xtr] # (32, 3, 2)
-h = torch.tanh(emb.view(-1, 30) @ W1 + b1) # (32, 100)
-logits = h @ W2 + b2 # (32, 27)
-loss = F.cross_entropy(logits, Ytr)
-print("Training loss", loss.item())
-
-# validation loss
-emb = C[Xdev] # (32, 3, 2)
-h = torch.tanh(emb.view(-1, 30) @ W1 + b1) # (32, 100)
-logits = h @ W2 + b2 # (32, 27)
-loss = F.cross_entropy(logits, Ydev)
-print("Validation loss", loss.item())
-
-# test loss
-emb = C[Xte] # (32, 3, 2)
-h = torch.tanh(emb.view(-1, 30) @ W1 + b1) # (32, 100)
-logits = h @ W2 + b2 # (32, 27)
-loss = F.cross_entropy(logits, Yte)
-print("Test loss", loss.item())
-
-
-# sample from the model
-g = torch.Generator().manual_seed(SEED + 10)
-
+g = torch.Generator().manual_seed(SEED+10)
 for _ in range(20):
     out = []
     context = [0] * block_size # initialize with all ...
@@ -139,13 +120,7 @@ for _ in range(20):
 
 
 # visualize dimensions 0 and 1 of the embedding matrix C for all characters
-
 if drawEmbedingMatrix:
-    plt.figure(figsize=(8,8))
-    plt.scatter(C[:,0].data, C[:,1].data, s=200)
-    for i in range(C.shape[0]):
-        plt.text(C[i,0].item(), C[i,1].item(), itos[i], ha="center", va="center", color='white')
-    plt.grid('minor')
-    plt.show()
+    drawEmbedingMatrix(C, itos)
 
 
