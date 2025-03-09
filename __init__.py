@@ -1,6 +1,6 @@
 import torch
 from multinomial_example import multinomialExample
-from read_file import SEED, getBigramProbabilityMatrix, getBigramNeuralNetwork
+from bigram import SEED, getBigramProbabilityMatrix, getBigramNeuralNetwork
 import torch.nn.functional as F
 
 neural_network = False
