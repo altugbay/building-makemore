@@ -40,15 +40,15 @@ Xte, Yte = build_dataset(words[n2:]) # 10% of the data
 
 
 n_emb = 10 # the dimension of the character embedding vectors
-n_hidden = 200 # the number of hidden neurons in the hidden layer of the MLP
+n_hidden = 200 # the number of neurons in the hidden layer of the MLP
 vocab_size = len(stoi)
 
 g = torch.Generator().manual_seed(SEED) # for reproducibility
 C = torch.randn((vocab_size, n_emb), generator=g)
-W1 = torch.randn((n_emb * block_size, n_hidden), generator=g)
-b1 = torch.randn(n_hidden, generator=g)
-W2 = torch.randn((n_hidden, vocab_size), generator=g)
-b2 = torch.randn(vocab_size, generator=g)
+W1 = torch.randn((n_emb * block_size, n_hidden), generator=g) * 0.02 # fixing for too saturated tanh function
+b1 = torch.randn(n_hidden, generator=g) * 0.01 # fixing for too saturated tanh function
+W2 = torch.randn((n_hidden, vocab_size), generator=g) * 0.01 # multiplying with a small number to have small initial weights
+b2 = torch.randn(vocab_size, generator=g) * 0.0 # set to zero in order to have the same initial distribution as the logits
 parameters = [C, W1, b1, W2, b2]
 
 print("parameters", sum(p.nelement() for p in parameters)) # number of parameters in total
