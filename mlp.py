@@ -7,7 +7,7 @@ from constants import SEED
 from reading_file import read_file # for making figures
 
 words, stoi, itos = read_file()
-trackStats = False
+trackStats = True
 drawEmbedingMatrix = False
 
 # build the dataset
@@ -34,16 +34,21 @@ random.shuffle(words)
 n1 = int(0.8*len(words))
 n2 = int(0.9*len(words))
 
-Xtr, Ytr = build_dataset(words[:n1])
-Xdev, Ydev = build_dataset(words[n1:n2])
-Xte, Yte = build_dataset(words[n2:])
+Xtr, Ytr = build_dataset(words[:n1]) # 80% of the data
+Xdev, Ydev = build_dataset(words[n1:n2]) # 10% of the data
+Xte, Yte = build_dataset(words[n2:]) # 10% of the data
+
+
+n_emb = 10 # the dimension of the character embedding vectors
+n_hidden = 200 # the number of hidden neurons in the hidden layer of the MLP
+vocab_size = len(stoi)
 
 g = torch.Generator().manual_seed(SEED) # for reproducibility
-C = torch.randn((27, 10), generator=g)
-W1 = torch.randn((30, 200), generator=g)
-b1 = torch.randn(200, generator=g)
-W2 = torch.randn((200, 27), generator=g)
-b2 = torch.randn(27, generator=g)
+C = torch.randn((vocab_size, n_emb), generator=g)
+W1 = torch.randn((n_emb * block_size, n_hidden), generator=g)
+b1 = torch.randn(n_hidden, generator=g)
+W2 = torch.randn((n_hidden, vocab_size), generator=g)
+b2 = torch.randn(vocab_size, generator=g)
 parameters = [C, W1, b1, W2, b2]
 
 print("parameters", sum(p.nelement() for p in parameters)) # number of parameters in total
@@ -51,48 +56,52 @@ for p in parameters:
   p.requires_grad = True
 
 
-lre = torch.linspace(-3, 0, 1000)
-lrs = 10**lre
-
-lri = []
+max_steps = 200000
+batch_size = 32
 lossi = []
-stepi = []
 
-for i in range(200000):
+for i in range(max_steps):
 
     # minibatch construction
-    ix = torch.randint(0, Xtr.shape[0], (32,))
+    ix = torch.randint(0, Xtr.shape[0], (batch_size,))
+    Xb, Yb = Xtr[ix], Ytr[ix] # batch X,Y
+
 
     # forward pass
-    emb = C[Xtr[ix]]
-    h = torch.tanh(emb.view(-1, 30) @ W1 + b1)
-    logits = h @ W2 + b2
-    loss = F.cross_entropy(logits, Ytr[ix])
+    emb = C[Xb] # embed the characters into vectors
+    embcat = emb.view(emb.shape[0], -1) # concatenate the vectors
+    hpreact = embcat @ W1 + b1 # hidden layer pre-activation
+    h = torch.tanh(hpreact) # hidden layer
+    logits = h @ W2 + b2 # output layer
+    loss = F.cross_entropy(logits, Yb) # loss function
     # backward pass
     for p in parameters:
         p.grad = None
     loss.backward()      
 
     # update
-    #lr = lrs[i]
     lr = 0.1 if i < 100000 else 0.01
     for p in parameters:
         p.data += -lr * p.grad
     
     # track stats
     if trackStats: 
-        #lri.append(lre[i])
-        stepi.append(i)
-        lossi.append(loss.log10().item())
+      # track stats
+      if i % 10000 == 0: # print every once in a while
+        print(f'{i:7d}/{max_steps:7d}: {loss.item():.4f}')
+      lossi.append(loss.log10().item())
 
 if trackStats:
-    plt.plot(stepi, lossi)
+    plt.plot(lossi)
     plt.show()   
+ 
 
+@torch.no_grad() # this decorator disables gradient tracking
 def printLoss(label, X, Y):
-    emb = C[X] # (32, 3, 2)
-    h = torch.tanh(emb.view(-1, 30) @ W1 + b1) # (32, 100)
-    logits = h @ W2 + b2 # (32, 27)
+    emb = C[X] # (N, block_size, n_emb) --- (32, 3, 2)
+    embcat = emb.view(emb.shape[0], -1) # concat into (N, block_size * n_emb) --- (32, 6)
+    h = torch.tanh(embcat @ W1 + b1) # (N, n_hidden) --- (32, 100)
+    logits = h @ W2 + b2 # (N, vocab_size) --- (32, 27)
     loss = F.cross_entropy(logits, Y)
     print(label, loss.item())
 
@@ -101,6 +110,7 @@ printLoss("Validation loss", Xdev, Ydev)
 printLoss("Test loss", Xte, Yte)
 
 
+# sample from the model
 g = torch.Generator().manual_seed(SEED+10)
 for _ in range(20):
     out = []
